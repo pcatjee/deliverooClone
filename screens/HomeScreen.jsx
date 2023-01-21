@@ -7,19 +7,43 @@ import {
   ScrollView,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import React, { useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Feather";
 import Categories from "../components/Categories";
 import FeaturedRow from "../components/FeaturedRow";
 
+import sanityClient from "../sanity";
+
 const HomeScreen = () => {
   const Navigation = useNavigation();
+  const [featuredCategories, setFeaturedCategories] = useState([]);
+
+  //will be in action when UI loads 👇
   useLayoutEffect(() => {
     Navigation.setOptions({
       headerShown: false,
     });
   }, []);
+  //will be in action when component loads 👇
+  useEffect(() => {
+    sanityClient
+      .fetch(
+        `
+    *[_type == "featured"] {
+      ...,
+     restaurants[]->{
+       ...,
+       dishes[]->
+     }
+      } 
+    `
+      )
+      .then((data) => {
+        setFeaturedCategories(data);
+      });
+  }, []);
+
   return (
     <>
       {/* Header  */}
@@ -61,23 +85,14 @@ const HomeScreen = () => {
           {/* Categories  */}
           <Categories />
           {/* Featured */}
-          <FeaturedRow
-            id="123"
-            title="Featured"
-            description="Paid placements from our partners"
-          />
-          {/* Tasty Discounts  */}
-          <FeaturedRow
-            id="1234"
-            title="Tasty Discounts"
-            description="Paid placements from our partners"
-          />
-          {/* Offers near you  */}
-          <FeaturedRow
-            id="12345"
-            title="Offers Near You"
-            description="Paid placements from our partners"
-          />
+          {featuredCategories?.map((category) => (
+            <FeaturedRow
+              key={category._id}
+              id={category._id}
+              title={category.name}
+              description={category.short_description}
+            />
+          ))}
         </ScrollView>
       </View>
     </>
